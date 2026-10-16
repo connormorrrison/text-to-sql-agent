@@ -212,6 +212,7 @@ Text-to-SQL-Agent/
 │
 ├── backend/
 │   ├── pyproject.toml                # deps, ruff, mypy, pytest config
+│   ├── uv.lock                       # locked dependency versions (uv)
 │   ├── Dockerfile
 │   ├── .env.example
 │   ├── src/
@@ -334,6 +335,8 @@ Text-to-SQL-Agent/
 │   └── results.md                    # ablation table, failure analysis
 │
 ├── data/                             # gitignored: BIRD downloads, local DBs
+├── docker/
+│   └── postgres/init.sql             # enables the vector extension on first start
 ├── docker-compose.yml                # local Postgres + pgvector
 ├── .pre-commit-config.yaml           # ruff, mypy, frontend lint, gitleaks
 ├── Makefile                          # make test, make eval, make deploy
@@ -512,13 +515,13 @@ These rules apply to every session, whether or not a slash command is used.
 
 ### Day 1: Foundation
 
-- [ ] Create repo, add this file, `.gitignore`, `README.md` stub
-- [ ] Set up `backend/` with `pyproject.toml`, ruff, mypy, pytest
-- [ ] Set up `docker-compose.yml` with Postgres + pgvector
-- [ ] `ci.yml` running backend lint and tests
-- [ ] `.pre-commit-config.yaml` with ruff, mypy, gitleaks; hooks installed
+- [x] Create repo, add this file, `.gitignore`, `README.md` stub
+- [x] Set up `backend/` with `pyproject.toml`, ruff, mypy, pytest
+- [x] Set up `docker-compose.yml` with Postgres + pgvector
+- [x] `ci.yml` running backend lint and tests
+- [x] `.pre-commit-config.yaml` with ruff, mypy, gitleaks; hooks installed
 - [ ] (Manual) Branch protection on `main`: require PR + passing CI, block direct and force pushes
-- [ ] Download BIRD dev set into `data/`
+- [x] Download BIRD dev set into `data/`
 - [ ] Set AWS budget alert, confirm Bedrock model access
 
 **Done when:** CI is green and BIRD is downloaded.
@@ -669,6 +672,12 @@ Record every significant decision here with the date and reason.
 | | CDK in TypeScript | Infrastructure as code; frontend already uses TypeScript |
 | | shadcn/ui with default settings, no customization | Fast, consistent, accessible UI; time goes to the agent and evals, not design |
 | | Plan file named AGENTS.md | Read by Claude Code (fallback when no CLAUDE.md exists) and by other coding agents |
+| 2026-10-16 | uv for Python version, venv, and lockfile (`backend/uv.lock`) | One tool pins Python 3.12 and gives reproducible installs; CI uses the same lockfile via `uv sync --locked` |
+| 2026-10-16 | pydantic-settings for `config.py` | Typed, validated env-var config; same Pydantic models already used by FastAPI |
+| 2026-10-16 | `pgvector/pgvector:pg16` image locally, extension created by `docker/postgres/init.sql` | Official pgvector image; Postgres 16 is supported by RDS, so local matches prod |
+| 2026-10-16 | mypy pre-commit hook runs from the uv env (`repo: local`) instead of mirrors-mypy | The mirror runs in an isolated env without project deps, so strict mode would report false errors |
+| 2026-10-16 | mypy strict also covers `backend/scripts/` | Scripts handle downloads and data; same bar as `src/` costs nothing |
+| 2026-10-16 | BIRD dev archive verified against a pinned MD5, extracted to `data/bird/dev/` | Catches corrupt or changed upstream files; flattens the dated archive folder so paths stay stable |
 
 ---
 
