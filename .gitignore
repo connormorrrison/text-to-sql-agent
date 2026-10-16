@@ -1,5 +1,5 @@
 # Data: BIRD downloads and local databases
-data/
+/backend/data/
 
 # Secrets
 .env

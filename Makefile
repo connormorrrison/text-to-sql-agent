@@ -22,7 +22,7 @@ test: ## Run backend tests
 	$(UV) pytest
 
 db-up: ## Start local Postgres + pgvector and wait until healthy
-	docker compose up -d --wait postgres
+	docker compose -f $(BACKEND)/docker-compose.yml up -d --wait postgres
 
 db-down: ## Stop local Postgres (data volume is kept)
-	docker compose down
+	docker compose -f $(BACKEND)/docker-compose.yml down

@@ -214,7 +214,13 @@ Text-to-SQL-Agent/
 ├── backend/
 │   ├── pyproject.toml                # deps, ruff, mypy, pytest config
 │   ├── uv.lock                       # locked dependency versions (uv)
+│   ├── .python-version               # Python 3.12 pin (uv)
+│   ├── .venv/                        # gitignored: local virtualenv (uv)
 │   ├── Dockerfile
+│   ├── docker-compose.yml            # local Postgres + pgvector
+│   ├── docker/
+│   │   └── postgres/init.sql         # enables the vector extension on first start
+│   ├── data/                         # gitignored: BIRD downloads, local DBs
 │   ├── .env.example
 │   ├── src/
 │   │   └── app/
@@ -335,10 +341,6 @@ Text-to-SQL-Agent/
 │   ├── architecture.md               # diagram + design decisions
 │   └── results.md                    # ablation table, failure analysis
 │
-├── data/                             # gitignored: BIRD downloads, local DBs
-├── docker/
-│   └── postgres/init.sql             # enables the vector extension on first start
-├── docker-compose.yml                # local Postgres + pgvector
 ├── .pre-commit-config.yaml           # ruff, mypy, frontend lint, gitleaks, commit-msg check
 ├── Makefile                          # make test, make eval, make deploy
 ├── AGENTS.md                         # this file (project plan + agent instructions)
@@ -418,7 +420,7 @@ Use GitHub OIDC to authenticate to AWS. Never store long-lived AWS keys in GitHu
 - **UI:** shadcn/ui only, with default settings. See Section 13a.
 - **Secrets:** never committed. Use `.env` locally (gitignored) and AWS Secrets Manager in prod.
 - **Config:** all limits (steps, retries, timeout, row limit, top-k) live in `config.py` and eval YAMLs, never hard-coded.
-- **Data:** BIRD downloads and local databases live in `data/`, which is gitignored.
+- **Data:** BIRD downloads and local databases live in `backend/data/`, which is gitignored.
 
 ---
 
@@ -478,7 +480,7 @@ These rules apply to every session, whether or not a slash command is used.
 - Push, merge, rebase, or force-push. The human does this.
 - Run `cdk deploy` or any command that creates, changes, or deletes AWS resources.
 - Run full eval sets without a cost estimate and human approval.
-- Commit secrets, `.env` files, or anything in `data/`.
+- Commit secrets, `.env` files, or anything in `backend/data/`.
 - Mention Claude or add AI attribution in commit messages or PR descriptions.
 - Weaken, skip, or delete a test to make it pass.
 - Build features from a later phase without asking.
@@ -524,7 +526,7 @@ These rules apply to every session, whether or not a slash command is used.
 - [x] `ci.yml` running backend lint and tests
 - [x] `.pre-commit-config.yaml` with ruff, mypy, gitleaks; hooks installed
 - [ ] (Manual) Branch protection on `main`: require PR + passing CI, block direct and force pushes
-- [x] Download BIRD dev set into `data/`
+- [x] Download BIRD dev set into `backend/data/`
 - [ ] Set AWS budget alert, confirm Bedrock model access
 
 **Done when:** CI is green and BIRD is downloaded.
@@ -677,11 +679,12 @@ Record every significant decision here with the date and reason.
 | | Plan file named AGENTS.md | Read by Claude Code (fallback when no CLAUDE.md exists) and by other coding agents |
 | 2026-10-16 | uv for Python version, venv, and lockfile (`backend/uv.lock`) | One tool pins Python 3.12 and gives reproducible installs; CI uses the same lockfile via `uv sync --locked` |
 | 2026-10-16 | pydantic-settings for `config.py` | Typed, validated env-var config; same Pydantic models already used by FastAPI |
-| 2026-10-16 | `pgvector/pgvector:pg16` image locally, extension created by `docker/postgres/init.sql` | Official pgvector image; Postgres 16 is supported by RDS, so local matches prod |
+| 2026-10-16 | `pgvector/pgvector:pg16` image locally, extension created by `backend/docker/postgres/init.sql` | Official pgvector image; Postgres 16 is supported by RDS, so local matches prod |
 | 2026-10-16 | mypy pre-commit hook runs from the uv env (`repo: local`) instead of mirrors-mypy | The mirror runs in an isolated env without project deps, so strict mode would report false errors |
 | 2026-10-16 | mypy strict also covers `backend/scripts/` | Scripts handle downloads and data; same bar as `src/` costs nothing |
-| 2026-10-16 | BIRD dev archive verified against a pinned MD5, extracted to `data/bird/dev/` | Catches corrupt or changed upstream files; flattens the dated archive folder so paths stay stable |
+| 2026-10-16 | BIRD dev archive verified against a pinned MD5, extracted to `backend/data/bird/dev/` | Catches corrupt or changed upstream files; flattens the dated archive folder so paths stay stable |
 | 2026-10-16 | No AI attribution in commits or PRs; enforced by settings and a `commit-msg` hook | Commit history is part of the portfolio and must be solely authored; a hook catches what a setting alone would miss |
+| 2026-10-16 | Backend-only files live in `backend/` (`docker-compose.yml`, `docker/`, `data/`, `uv.lock`, `.python-version`, `.venv/`) | Backend-only files live in backend/ to keep the root limited to repo-wide tooling |
 
 ---
 

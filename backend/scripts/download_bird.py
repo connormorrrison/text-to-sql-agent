@@ -1,4 +1,4 @@
-"""Download the BIRD dev set into data/bird/ and verify it.
+"""Download the BIRD dev set into backend/data/bird/ and verify it.
 
 Usage (from backend/):
     uv run python -m scripts.download_bird [--dest PATH] [--force]
@@ -34,8 +34,8 @@ EXPECTED_DATABASES = 11
 REQUIRED_FILES = ("dev.json", "dev_tables.json", "dev.sql")
 SQLITE_HEADER = b"SQLite format 3\x00"
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DEST = REPO_ROOT / "data" / "bird"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DEST = BACKEND_ROOT / "data" / "bird"
 
 CHUNK_SIZE = 1024 * 1024
 

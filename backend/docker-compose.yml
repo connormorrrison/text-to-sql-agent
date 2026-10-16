@@ -1,4 +1,6 @@
 # Local Postgres + pgvector. Credentials are for local development only.
+name: text-to-sql-agent
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
