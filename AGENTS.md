@@ -199,6 +199,7 @@ Principle: **real protection comes from database permissions, not prompt instruc
 ```
 Text-to-SQL-Agent/
 ├── .claude/
+│   ├── settings.json                 # project settings: AI attribution off
 │   └── commands/                     # Claude Code slash commands (see Section 13b)
 │       ├── phase-01-foundation.md    # ... through phase-10-wrap-up.md
 │       ├── review.md
@@ -338,7 +339,7 @@ Text-to-SQL-Agent/
 ├── docker/
 │   └── postgres/init.sql             # enables the vector extension on first start
 ├── docker-compose.yml                # local Postgres + pgvector
-├── .pre-commit-config.yaml           # ruff, mypy, frontend lint, gitleaks
+├── .pre-commit-config.yaml           # ruff, mypy, frontend lint, gitleaks, commit-msg check
 ├── Makefile                          # make test, make eval, make deploy
 ├── AGENTS.md                         # this file (project plan + agent instructions)
 ├── .gitignore
@@ -470,6 +471,7 @@ These rules apply to every session, whether or not a slash command is used.
 - Small, one logical change each, with imperative messages (`Add SQL validator`, `Fix row limit off-by-one`).
 - Show a diff summary before each commit.
 - Pre-commit hooks must pass. Never bypass them (`--no-verify` is not allowed).
+- Commit messages and PR descriptions never mention Claude: no `Co-Authored-By` trailers, no "Generated with" footers. `.claude/settings.json` turns off attribution, and the `no-claude-in-commit-msg` hook rejects any commit message containing "claude".
 
 ### What the agent must never do
 
@@ -477,6 +479,7 @@ These rules apply to every session, whether or not a slash command is used.
 - Run `cdk deploy` or any command that creates, changes, or deletes AWS resources.
 - Run full eval sets without a cost estimate and human approval.
 - Commit secrets, `.env` files, or anything in `data/`.
+- Mention Claude or add AI attribution in commit messages or PR descriptions.
 - Weaken, skip, or delete a test to make it pass.
 - Build features from a later phase without asking.
 - Use dev-set benchmark data for retrieval, prompts, or few-shot examples.
@@ -678,6 +681,7 @@ Record every significant decision here with the date and reason.
 | 2026-10-16 | mypy pre-commit hook runs from the uv env (`repo: local`) instead of mirrors-mypy | The mirror runs in an isolated env without project deps, so strict mode would report false errors |
 | 2026-10-16 | mypy strict also covers `backend/scripts/` | Scripts handle downloads and data; same bar as `src/` costs nothing |
 | 2026-10-16 | BIRD dev archive verified against a pinned MD5, extracted to `data/bird/dev/` | Catches corrupt or changed upstream files; flattens the dated archive folder so paths stay stable |
+| 2026-10-16 | No AI attribution in commits or PRs; enforced by settings and a `commit-msg` hook | Commit history is part of the portfolio and must be solely authored; a hook catches what a setting alone would miss |
 
 ---
 
