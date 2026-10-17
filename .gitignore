@@ -1,0 +1,31 @@
+# Data: BIRD downloads and local databases
+/backend/data/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / frontend
+node_modules/
+
+# CDK
+cdk.out/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

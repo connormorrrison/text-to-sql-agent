@@ -22,12 +22,12 @@ Read AGENTS.md fully before doing anything.
 ## Scope
 Set up only what Day 1 needs. No placeholder code for later phases.
 - `backend/` as in Section 9: `pyproject.toml` (Python 3.12, FastAPI, Pydantic, sqlglot, psycopg, pgvector, boto3, pytest, ruff, mypy strict on `src/`), the `src/app` package skeleton, the `tests/` skeleton
-- `docker-compose.yml` with Postgres + pgvector
-- `.gitignore` (include `data/`, `.env`, `node_modules/`, `cdk.out/`, `__pycache__/`, `.venv/`)
+- `backend/docker-compose.yml` with Postgres + pgvector
+- `.gitignore` (include `backend/data/`, `.env`, `node_modules/`, `cdk.out/`, `__pycache__/`, `.venv/`)
 - `Makefile` with: `install`, `lint`, `typecheck`, `test`, `db-up`, `db-down`
 - `.pre-commit-config.yaml` with ruff, mypy, and gitleaks (secret scanning). Tell me the command to install the hooks.
 - `.github/workflows/ci.yml` running ruff, mypy, and pytest for the backend
-- `backend/scripts/download_bird.py`: downloads the BIRD dev set into `data/bird/` and verifies the files
+- `backend/scripts/download_bird.py`: downloads the BIRD dev set into `backend/data/bird/` and verifies the files
 - `backend/.env.example` listing every environment variable with a comment
 
 ## Done when

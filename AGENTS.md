@@ -199,6 +199,7 @@ Principle: **real protection comes from database permissions, not prompt instruc
 ```
 Text-to-SQL-Agent/
 ├── .claude/
+│   ├── settings.json                 # project settings: AI attribution off
 │   └── commands/                     # Claude Code slash commands (see Section 13b)
 │       ├── phase-01-foundation.md    # ... through phase-10-wrap-up.md
 │       ├── review.md
@@ -212,7 +213,14 @@ Text-to-SQL-Agent/
 │
 ├── backend/
 │   ├── pyproject.toml                # deps, ruff, mypy, pytest config
+│   ├── uv.lock                       # locked dependency versions (uv)
+│   ├── .python-version               # Python 3.12 pin (uv)
+│   ├── .venv/                        # gitignored: local virtualenv (uv)
 │   ├── Dockerfile
+│   ├── docker-compose.yml            # local Postgres + pgvector
+│   ├── docker/
+│   │   └── postgres/init.sql         # enables the vector extension on first start
+│   ├── data/                         # gitignored: BIRD downloads, local DBs
 │   ├── .env.example
 │   ├── src/
 │   │   └── app/
@@ -333,9 +341,7 @@ Text-to-SQL-Agent/
 │   ├── architecture.md               # diagram + design decisions
 │   └── results.md                    # ablation table, failure analysis
 │
-├── data/                             # gitignored: BIRD downloads, local DBs
-├── docker-compose.yml                # local Postgres + pgvector
-├── .pre-commit-config.yaml           # ruff, mypy, frontend lint, gitleaks
+├── .pre-commit-config.yaml           # ruff, mypy, frontend lint, gitleaks, commit-msg check
 ├── Makefile                          # make test, make eval, make deploy
 ├── AGENTS.md                         # this file (project plan + agent instructions)
 ├── .gitignore
@@ -414,7 +420,7 @@ Use GitHub OIDC to authenticate to AWS. Never store long-lived AWS keys in GitHu
 - **UI:** shadcn/ui only, with default settings. See Section 13a.
 - **Secrets:** never committed. Use `.env` locally (gitignored) and AWS Secrets Manager in prod.
 - **Config:** all limits (steps, retries, timeout, row limit, top-k) live in `config.py` and eval YAMLs, never hard-coded.
-- **Data:** BIRD downloads and local databases live in `data/`, which is gitignored.
+- **Data:** BIRD downloads and local databases live in `backend/data/`, which is gitignored.
 
 ---
 
@@ -467,13 +473,15 @@ These rules apply to every session, whether or not a slash command is used.
 - Small, one logical change each, with imperative messages (`Add SQL validator`, `Fix row limit off-by-one`).
 - Show a diff summary before each commit.
 - Pre-commit hooks must pass. Never bypass them (`--no-verify` is not allowed).
+- Commit messages and PR descriptions never mention Claude: no `Co-Authored-By` trailers, no "Generated with" footers. `.claude/settings.json` turns off attribution, and the `no-claude-in-commit-msg` hook (`backend/scripts/check_commit_msg.py`) rejects any commit message containing "claude". It ignores git comments, the diff added by `git commit -v`, and `.claude/` paths.
 
 ### What the agent must never do
 
 - Push, merge, rebase, or force-push. The human does this.
 - Run `cdk deploy` or any command that creates, changes, or deletes AWS resources.
 - Run full eval sets without a cost estimate and human approval.
-- Commit secrets, `.env` files, or anything in `data/`.
+- Commit secrets, `.env` files, or anything in `backend/data/`.
+- Mention Claude or add AI attribution in commit messages or PR descriptions.
 - Weaken, skip, or delete a test to make it pass.
 - Build features from a later phase without asking.
 - Use dev-set benchmark data for retrieval, prompts, or few-shot examples.
@@ -512,13 +520,13 @@ These rules apply to every session, whether or not a slash command is used.
 
 ### Day 1: Foundation
 
-- [ ] Create repo, add this file, `.gitignore`, `README.md` stub
-- [ ] Set up `backend/` with `pyproject.toml`, ruff, mypy, pytest
-- [ ] Set up `docker-compose.yml` with Postgres + pgvector
-- [ ] `ci.yml` running backend lint and tests
-- [ ] `.pre-commit-config.yaml` with ruff, mypy, gitleaks; hooks installed
+- [x] Create repo, add this file, `.gitignore`, `README.md` stub
+- [x] Set up `backend/` with `pyproject.toml`, ruff, mypy, pytest
+- [x] Set up `docker-compose.yml` with Postgres + pgvector
+- [ ] `ci.yml` running backend lint and tests (tick after the first green CI run)
+- [x] `.pre-commit-config.yaml` with ruff, mypy, gitleaks; hooks installed
 - [ ] (Manual) Branch protection on `main`: require PR + passing CI, block direct and force pushes
-- [ ] Download BIRD dev set into `data/`
+- [x] Download BIRD dev set into `backend/data/`
 - [ ] Set AWS budget alert, confirm Bedrock model access
 
 **Done when:** CI is green and BIRD is downloaded.
@@ -530,6 +538,7 @@ These rules apply to every session, whether or not a slash command is used.
 - [ ] `run_query` tool with SQL validator, timeout, and row limit (plus tests)
 - [ ] Baseline config: full schema in prompt
 - [ ] Agent answers 10 sample BIRD questions end to end
+- [ ] Make `database_url` in `config.py` a secret type (`SecretStr` or equivalent) so the password never appears in logs or reprs
 
 **Done when:** the agent produces SQL and answers for sample questions.
 
@@ -669,6 +678,18 @@ Record every significant decision here with the date and reason.
 | | CDK in TypeScript | Infrastructure as code; frontend already uses TypeScript |
 | | shadcn/ui with default settings, no customization | Fast, consistent, accessible UI; time goes to the agent and evals, not design |
 | | Plan file named AGENTS.md | Read by Claude Code (fallback when no CLAUDE.md exists) and by other coding agents |
+| 2026-10-16 | uv for Python version, venv, and lockfile (`backend/uv.lock`) | One tool pins Python 3.12 and gives reproducible installs; CI uses the same lockfile via `uv sync --locked` |
+| 2026-10-16 | pydantic-settings for `config.py` | Typed, validated env-var config; same Pydantic models already used by FastAPI |
+| 2026-10-16 | `pgvector/pgvector:pg16` image locally, extension created by `backend/docker/postgres/init.sql` | Official pgvector image; Postgres 16 is supported by RDS, so local matches prod |
+| 2026-10-16 | mypy pre-commit hook runs from the uv env (`repo: local`) instead of mirrors-mypy | The mirror runs in an isolated env without project deps, so strict mode would report false errors |
+| 2026-10-16 | mypy strict also covers `backend/scripts/` | Scripts handle downloads and data; same bar as `src/` costs nothing |
+| 2026-10-16 | BIRD dev archive verified against a pinned SHA-256, extracted to `backend/data/bird/dev/` | SHA-256 catches both corrupt downloads and deliberately altered files (MD5 collisions are practical, so MD5 only catches accidents); flattening the dated archive folder keeps paths stable |
+| 2026-10-16 | No AI attribution in commits or PRs; enforced by settings and a `commit-msg` hook | Commit history is part of the portfolio and must be solely authored; a hook catches what a setting alone would miss |
+| 2026-10-16 | Backend-only files live in `backend/` (`docker-compose.yml`, `docker/`, `data/`, `uv.lock`, `.python-version`, `.venv/`) | The root holds only repo-wide tooling (CI, hooks, Makefile, plan), so the frontend and infra can sit beside `backend/` without mixing in its files; the backend can also be run from its own directory |
+| 2026-10-16 | GitHub Actions pinned to full commit SHAs, version in a trailing comment | Tags can be moved or deleted (setup-uv has no `v10` tag at all); a SHA always resolves to the same reviewed code |
+| 2026-10-16 | pre-commit is a backend dev dependency, run with `uv run --project backend` | Pins the hook runner in `uv.lock` instead of relying on whatever global version is installed (a global 2.21 was in use) |
+| 2026-10-16 | Commit-msg check is a tested Python script instead of a `pygrep` regex | A one-line regex cannot stop at the `git commit -v` scissors line or allow `.claude/` paths, and had no tests |
+| 2026-10-16 | gitleaks runs in CI as well as in pre-commit | Hooks are local and can be skipped; CI scans every pushed commit regardless (no license needed for a personal-account repo) |
 
 ---
 
