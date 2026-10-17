@@ -1,11 +1,13 @@
 BACKEND := backend
 UV := uv run --directory $(BACKEND)
+# pre-commit reads .pre-commit-config.yaml from the repo root, so use --project, not --directory.
+PRE_COMMIT := uv run --project $(BACKEND) pre-commit
 
 .PHONY: install lint format typecheck test db-up db-down
 
 install: ## Install backend dependencies and git hooks
 	uv sync --directory $(BACKEND) --locked
-	pre-commit install
+	$(PRE_COMMIT) install
 
 lint: ## Lint and check formatting
 	$(UV) ruff check .
