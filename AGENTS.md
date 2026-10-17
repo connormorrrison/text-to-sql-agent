@@ -523,7 +523,7 @@ These rules apply to every session, whether or not a slash command is used.
 - [x] Create repo, add this file, `.gitignore`, `README.md` stub
 - [x] Set up `backend/` with `pyproject.toml`, ruff, mypy, pytest
 - [x] Set up `docker-compose.yml` with Postgres + pgvector
-- [x] `ci.yml` running backend lint and tests
+- [ ] `ci.yml` running backend lint and tests (tick after the first green CI run)
 - [x] `.pre-commit-config.yaml` with ruff, mypy, gitleaks; hooks installed
 - [ ] (Manual) Branch protection on `main`: require PR + passing CI, block direct and force pushes
 - [x] Download BIRD dev set into `backend/data/`
