@@ -17,7 +17,7 @@ format: ## Auto-fix lint issues and format
 	$(UV) ruff check --fix .
 	$(UV) ruff format .
 
-typecheck: ## mypy strict on src/
+typecheck: ## mypy strict on backend src/ and scripts/
 	$(UV) mypy
 
 test: ## Run backend tests
