@@ -22,3 +22,9 @@ def test_invalid_database_url_is_rejected(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("DATABASE_URL", "not-a-url")
     with pytest.raises(ValueError):
         Settings(_env_file=None)  # type: ignore[call-arg]
+
+
+def test_invalid_log_level_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "VERBOSE")
+    with pytest.raises(ValueError):
+        Settings(_env_file=None)  # type: ignore[call-arg]

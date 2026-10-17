@@ -538,6 +538,7 @@ These rules apply to every session, whether or not a slash command is used.
 - [ ] `run_query` tool with SQL validator, timeout, and row limit (plus tests)
 - [ ] Baseline config: full schema in prompt
 - [ ] Agent answers 10 sample BIRD questions end to end
+- [ ] Make `database_url` in `config.py` a secret type (`SecretStr` or equivalent) so the password never appears in logs or reprs
 
 **Done when:** the agent produces SQL and answers for sample questions.
 

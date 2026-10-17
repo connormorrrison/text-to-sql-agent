@@ -1,9 +1,12 @@
 """Application settings, loaded from environment variables (and `.env` locally)."""
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 
 class Settings(BaseSettings):
@@ -13,7 +16,7 @@ class Settings(BaseSettings):
         default=PostgresDsn("postgresql://postgres:postgres@localhost:5432/text_to_sql"),
     )
     aws_region: str = "us-east-1"
-    log_level: str = "INFO"
+    log_level: LogLevel = "INFO"
 
 
 @lru_cache
