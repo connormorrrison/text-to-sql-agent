@@ -42,3 +42,17 @@ jobs:
 
       - name: Pytest
         run: uv run pytest
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # full history, so every commit in the push or PR is scanned
+
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e  # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.30.1  # keep in sync with .pre-commit-config.yaml
+          GITLEAKS_ENABLE_COMMENTS: false  # PR comments would need pull-requests: write

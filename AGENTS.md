@@ -689,6 +689,7 @@ Record every significant decision here with the date and reason.
 | 2026-10-16 | GitHub Actions pinned to full commit SHAs, version in a trailing comment | Tags can be moved or deleted (setup-uv has no `v10` tag at all); a SHA always resolves to the same reviewed code |
 | 2026-10-16 | pre-commit is a backend dev dependency, run with `uv run --project backend` | Pins the hook runner in `uv.lock` instead of relying on whatever global version is installed (a global 2.21 was in use) |
 | 2026-10-16 | Commit-msg check is a tested Python script instead of a `pygrep` regex | A one-line regex cannot stop at the `git commit -v` scissors line or allow `.claude/` paths, and had no tests |
+| 2026-10-16 | gitleaks runs in CI as well as in pre-commit | Hooks are local and can be skipped; CI scans every pushed commit regardless (no license needed for a personal-account repo) |
 
 ---
 
