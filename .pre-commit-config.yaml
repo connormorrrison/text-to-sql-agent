@@ -25,11 +25,12 @@ repos:
         pass_filenames: false
 
       # Commit messages must never mention Claude (no AI co-author trailers or references).
-      # Lines starting with '#' are git's editor comments and are ignored.
+      # Ignores git comments, the `git commit -v` diff, and `.claude/` paths. See the script.
+      # --project (not --directory) keeps the repo root as cwd, so the message path resolves.
       - id: no-claude-in-commit-msg
         name: commit message does not mention Claude
-        entry: '(?i)^(?!#).*claude'
-        language: pygrep
+        entry: uv run --project backend python backend/scripts/check_commit_msg.py
+        language: system
         stages: [commit-msg]
 
   - repo: https://github.com/gitleaks/gitleaks
