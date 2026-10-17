@@ -1,10 +1,12 @@
 import json
 import sqlite3
+import urllib.error
 import zipfile
 from pathlib import Path
 
 import pytest
 
+from scripts import download_bird
 from scripts.download_bird import VerificationError, md5_of, safe_extract, verify_dataset
 
 
@@ -91,3 +93,15 @@ def test_md5_of(tmp_path: Path) -> None:
     f = tmp_path / "f"
     f.write_bytes(b"hello")
     assert md5_of(f) == "5d41402abc4b2a76b9719d911017c592"
+
+
+def test_main_reports_network_error_in_one_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def failing_download(url: str, target: Path) -> None:
+        raise urllib.error.URLError("timed out")
+
+    monkeypatch.setattr(download_bird, "download", failing_download)
+    assert download_bird.main(["--dest", str(tmp_path)]) == 1
+    err = capsys.readouterr().err
+    assert err == "error: <urlopen error timed out>\n"

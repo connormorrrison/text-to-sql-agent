@@ -38,6 +38,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DEST = BACKEND_ROOT / "data" / "bird"
 
 CHUNK_SIZE = 1024 * 1024
+DOWNLOAD_TIMEOUT_S = 60  # per socket operation, not the whole download
 
 
 class VerificationError(Exception):
@@ -56,7 +57,10 @@ def download(url: str, target: Path) -> None:
     """Stream `url` to `target`, writing to a temp file first so partial downloads never linger."""
     target.parent.mkdir(parents=True, exist_ok=True)
     partial = target.with_suffix(target.suffix + ".part")
-    with urllib.request.urlopen(url) as response, partial.open("wb") as out:
+    with (
+        urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT_S) as response,
+        partial.open("wb") as out,
+    ):
         total = int(response.headers.get("Content-Length", 0))
         done = 0
         while chunk := response.read(CHUNK_SIZE):
@@ -104,7 +108,10 @@ def verify_dataset(
         if not (dev_dir / name).is_file():
             raise VerificationError(f"Missing file: {dev_dir / name}")
 
-    questions = json.loads((dev_dir / "dev.json").read_text(encoding="utf-8"))
+    try:
+        questions = json.loads((dev_dir / "dev.json").read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise VerificationError(f"dev.json is not valid JSON: {e}") from e
     if not isinstance(questions, list) or len(questions) != expected_questions:
         count = len(questions) if isinstance(questions, list) else "not a list"
         raise VerificationError(f"dev.json: expected {expected_questions} questions, got {count}")
@@ -151,6 +158,8 @@ def fetch_bird_dev(dest: Path, force: bool = False) -> Path:
     print(f"Extracting to {dev_dir}")
     safe_extract(archive, dev_dir, strip_prefix=ARCHIVE_PREFIX)
     nested = dev_dir / NESTED_DB_ZIP
+    if not nested.is_file():
+        raise VerificationError(f"Archive did not contain {NESTED_DB_ZIP}")
     safe_extract(nested, dev_dir)
     nested.unlink()
 
@@ -169,7 +178,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         fetch_bird_dev(args.dest, force=args.force)
-    except VerificationError as e:
+    # OSError covers network failures (URLError, timeouts) and file system errors.
+    except (VerificationError, OSError, zipfile.BadZipFile) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
     return 0
