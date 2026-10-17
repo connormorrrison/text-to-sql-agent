@@ -685,6 +685,7 @@ Record every significant decision here with the date and reason.
 | 2026-10-16 | BIRD dev archive verified against a pinned MD5, extracted to `backend/data/bird/dev/` | Catches corrupt or changed upstream files; flattens the dated archive folder so paths stay stable |
 | 2026-10-16 | No AI attribution in commits or PRs; enforced by settings and a `commit-msg` hook | Commit history is part of the portfolio and must be solely authored; a hook catches what a setting alone would miss |
 | 2026-10-16 | Backend-only files live in `backend/` (`docker-compose.yml`, `docker/`, `data/`, `uv.lock`, `.python-version`, `.venv/`) | Backend-only files live in backend/ to keep the root limited to repo-wide tooling |
+| 2026-10-16 | GitHub Actions pinned to full commit SHAs, version in a trailing comment | Tags can be moved or deleted (setup-uv has no `v10` tag at all); a SHA always resolves to the same reviewed code |
 
 ---
 
