@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: text_to_sql
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"  # localhost only, never other machines on the network
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
