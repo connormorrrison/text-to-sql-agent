@@ -1,4 +1,5 @@
 import json
+import shutil
 import sqlite3
 import urllib.error
 import zipfile
@@ -105,3 +106,97 @@ def test_main_reports_network_error_in_one_line(
     assert download_bird.main(["--dest", str(tmp_path)]) == 1
     err = capsys.readouterr().err
     assert err == "error: <urlopen error timed out>\n"
+
+
+# fetch_bird_dev: the network is replaced by a fake download that copies a small local archive
+# laid out like the real one (dated top folder with a nested dev_databases.zip).
+
+
+@pytest.fixture
+def fake_bird(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Serve a small fake BIRD archive and pin its SHA-256. Returns the list of downloaded URLs."""
+    (tmp_path / "source").mkdir()
+    source = make_dev_dir(tmp_path / "source", ["a", "b"])
+    nested = tmp_path / "dev_databases.zip"
+    with zipfile.ZipFile(nested, "w") as zf:
+        for db in (source / "dev_databases").rglob("*.sqlite"):
+            zf.write(db, db.relative_to(source).as_posix())
+    archive = tmp_path / "fake_dev.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        for name in ("dev.json", "dev_tables.json", "dev.sql"):
+            zf.write(source / name, download_bird.ARCHIVE_PREFIX + name)
+        zf.write(nested, download_bird.ARCHIVE_PREFIX + download_bird.NESTED_DB_ZIP)
+        zf.writestr("__MACOSX/._dev.json", "junk")
+
+    calls: list[str] = []
+
+    def fake_download(url: str, target: Path) -> None:
+        calls.append(url)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(archive, target)
+
+    real_verify = download_bird.verify_dataset
+    monkeypatch.setattr(download_bird, "download", fake_download)
+    monkeypatch.setattr(download_bird, "BIRD_DEV_SHA256", sha256_of(archive))
+    monkeypatch.setattr(
+        download_bird,
+        "verify_dataset",
+        lambda dev_dir: real_verify(dev_dir, expected_questions=4, expected_databases=2),
+    )
+    return calls
+
+
+def test_fetch_downloads_extracts_and_cleans_up(tmp_path: Path, fake_bird: list[str]) -> None:
+    dest = tmp_path / "bird"
+    dev = download_bird.fetch_bird_dev(dest)
+    assert fake_bird == [download_bird.BIRD_DEV_URL]
+    assert (dev / "dev_databases" / "b" / "b.sqlite").is_file()
+    assert not (dest / "dev.zip").exists()
+    assert not (dev / download_bird.NESTED_DB_ZIP).exists()
+
+
+def test_fetch_skips_download_when_dataset_verifies(tmp_path: Path, fake_bird: list[str]) -> None:
+    dest = tmp_path / "bird"
+    download_bird.fetch_bird_dev(dest)
+    marker = dest / "dev" / "dev.sql"
+    marker.write_text("untouched\n")
+
+    download_bird.fetch_bird_dev(dest)
+
+    assert len(fake_bird) == 1
+    assert marker.read_text() == "untouched\n"
+
+
+def test_fetch_force_redownloads_and_reextracts(tmp_path: Path, fake_bird: list[str]) -> None:
+    dest = tmp_path / "bird"
+    download_bird.fetch_bird_dev(dest)
+    stray = dest / "dev" / "stray.txt"
+    stray.write_text("old")
+
+    download_bird.fetch_bird_dev(dest, force=True)
+
+    assert len(fake_bird) == 2
+    assert not stray.exists()
+    download_bird.verify_dataset(dest / "dev")
+
+
+def test_fetch_rejects_checksum_mismatch(
+    tmp_path: Path, fake_bird: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(download_bird, "BIRD_DEV_SHA256", "0" * 64)
+    dest = tmp_path / "bird"
+    with pytest.raises(VerificationError, match="SHA-256 mismatch"):
+        download_bird.fetch_bird_dev(dest)
+    assert not (dest / "dev").exists()
+
+
+def test_main_reports_checksum_mismatch_in_one_line(
+    tmp_path: Path,
+    fake_bird: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(download_bird, "BIRD_DEV_SHA256", "0" * 64)
+    assert download_bird.main(["--dest", str(tmp_path / "bird")]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith("error: SHA-256 mismatch") and err.count("\n") == 1
