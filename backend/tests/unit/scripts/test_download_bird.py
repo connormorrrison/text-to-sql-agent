@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from scripts import download_bird
-from scripts.download_bird import VerificationError, md5_of, safe_extract, verify_dataset
+from scripts.download_bird import VerificationError, safe_extract, sha256_of, verify_dataset
 
 
 def make_dev_dir(root: Path, db_ids: list[str], questions_per_db: int = 2) -> Path:
@@ -89,10 +89,10 @@ def test_safe_extract_rejects_path_traversal(tmp_path: Path) -> None:
     assert not (tmp_path / "escaped.txt").exists()
 
 
-def test_md5_of(tmp_path: Path) -> None:
+def test_sha256_of(tmp_path: Path) -> None:
     f = tmp_path / "f"
     f.write_bytes(b"hello")
-    assert md5_of(f) == "5d41402abc4b2a76b9719d911017c592"
+    assert sha256_of(f) == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
 
 
 def test_main_reports_network_error_in_one_line(

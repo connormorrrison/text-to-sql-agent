@@ -24,8 +24,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 BIRD_DEV_URL = "https://bird-bench.oss-cn-beijing.aliyuncs.com/dev.zip"
-# MD5 of the 2024-06-27 dev release. Pinned so a changed upstream file is caught, not trusted.
-BIRD_DEV_MD5 = "04b4af221c9186361f09b16abfd917ec"
+# SHA-256 of the 2024-06-27 dev release. Pinned so a changed upstream file is caught, not trusted.
+BIRD_DEV_SHA256 = "cdd6d19faeb45a23970b98d3ef6c40a87987c95459c2cf12076897a60cf5a630"
 ARCHIVE_PREFIX = "dev_20240627/"
 NESTED_DB_ZIP = "dev_databases.zip"
 
@@ -45,8 +45,8 @@ class VerificationError(Exception):
     """The downloaded dataset is missing files or does not match expectations."""
 
 
-def md5_of(path: Path) -> str:
-    digest = hashlib.md5()
+def sha256_of(path: Path) -> str:
+    digest = hashlib.sha256()
     with path.open("rb") as f:
         while chunk := f.read(CHUNK_SIZE):
             digest.update(chunk)
@@ -146,14 +146,14 @@ def fetch_bird_dev(dest: Path, force: bool = False) -> Path:
     if dev_dir.exists():
         shutil.rmtree(dev_dir)
     archive = dest / "dev.zip"
-    if force or not archive.is_file() or md5_of(archive) != BIRD_DEV_MD5:
+    if force or not archive.is_file() or sha256_of(archive) != BIRD_DEV_SHA256:
         print(f"Downloading {BIRD_DEV_URL}")
         download(BIRD_DEV_URL, archive)
 
-    print("Checking MD5")
-    actual = md5_of(archive)
-    if actual != BIRD_DEV_MD5:
-        raise VerificationError(f"MD5 mismatch for {archive}: {actual} != {BIRD_DEV_MD5}")
+    print("Checking SHA-256")
+    actual = sha256_of(archive)
+    if actual != BIRD_DEV_SHA256:
+        raise VerificationError(f"SHA-256 mismatch for {archive}: {actual} != {BIRD_DEV_SHA256}")
 
     print(f"Extracting to {dev_dir}")
     safe_extract(archive, dev_dir, strip_prefix=ARCHIVE_PREFIX)
