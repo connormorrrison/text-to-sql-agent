@@ -1,7 +1,9 @@
 name: CI
 
+# Branches run CI through their PR; pushes to main run it again on the merged result.
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
